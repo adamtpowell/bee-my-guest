@@ -1,4 +1,4 @@
-import { encodeMessage } from "../shared/messaging.ts";
+import { Message, encodeMessage } from "../shared/messaging.ts";
 
 const ws = new WebSocket("ws://localhost:8080");
 
@@ -8,12 +8,13 @@ ws.onmessage = (m) => {
 
 ws.onopen = (_) => {
     while (true) {
-        const message = prompt(">> ") || "exit";
-        if (message as string == "exit") {
+        const input = prompt(">> ") || "exit";
+        if (input as string == "exit") {
             ws.close();
             Deno.exit(0);
         }
-        const args = message.split(" ");
-        ws.send(encodeMessage(args[0], args.slice(1)));
+        const args = input.split(" ");
+        const message = new Message(args[0], args.slice(1))
+        ws.send(message.stringify())
     }
 };

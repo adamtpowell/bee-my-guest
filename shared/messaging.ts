@@ -1,8 +1,18 @@
-// TODO: Add rich type for messages.
-export function encodeMessage(name: string, args: string[]): string {
-    return JSON.stringify({"name": name, "args": args});
-}
+export class Message {
+    name: string;
+    args: string[];
 
-export function decodeMessage(message: string): {name: string, args: string[]} {
-    return JSON.parse(message);
+    constructor(name: string, args: string[]) {
+        this.name = name;
+        this.args = args;
+    }
+
+    stringify() {
+        return JSON.stringify({ name: this.name, args: this.args });
+    }
+
+    static parse(message: string): { name: string; args: string[] } {
+        const obj = JSON.parse(message);
+        return new Message(obj.name, obj.args);
+    }
 }
