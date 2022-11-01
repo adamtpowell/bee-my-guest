@@ -1,3 +1,5 @@
+import { decodeMessage } from "../shared/messaging.ts";
+
 const server = Deno.listen({ port: 8080 });
 
 class Connection {
@@ -62,7 +64,7 @@ function receiveSocket(socket: WebSocket, _response: Response) {
     socket.onopen = () => {
     };
     socket.onmessage = (e) => {
-        const args: string[] = JSON.parse(e.data);
+        const args: string[] = decodeMessage(e.data);
         const message_type = args.shift() || "ERROR_MESSAGE";
         // Call the registered listener for this message type.
         const listener = conn.listeners[message_type];
