@@ -1,4 +1,4 @@
-import { Message, encodeMessage } from "../shared/messaging.ts";
+import { Message } from "../shared/messaging.ts";
 
 const ws = new WebSocket("ws://localhost:8080");
 
