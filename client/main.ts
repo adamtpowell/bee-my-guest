@@ -14,6 +14,6 @@ ws.onopen = (_) => {
             Deno.exit(0);
         }
         const args = message.split(" ");
-        ws.send(encodeMessage(args));
+        ws.send(encodeMessage(args[0], args.slice(1)));
     }
 };

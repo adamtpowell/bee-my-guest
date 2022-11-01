@@ -64,12 +64,11 @@ function receiveSocket(socket: WebSocket, _response: Response) {
     socket.onopen = () => {
     };
     socket.onmessage = (e) => {
-        const args: string[] = decodeMessage(e.data);
-        const message_type = args.shift() || "ERROR_MESSAGE";
+        const message = decodeMessage(e.data);
         // Call the registered listener for this message type.
-        const listener = conn.listeners[message_type];
+        const listener = conn.listeners[message.name];
         if (listener) {
-            listener(args);
+            listener(message.args);
         } else {
             console.log("Unknown Message");
         }
