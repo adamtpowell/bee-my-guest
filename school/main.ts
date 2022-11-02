@@ -30,14 +30,13 @@ function registerGlobalActions(conn: Connection) {
 
         // Register listeners from the model.
         conn.registerListener("SendMessage", (args) => {
-            console.log("Message Received!");
             model.messages.push(args[1] + ": " + args[0]);
         });
 
         conn.registerListener("ListMessages", (_) => {
-            console.log("Messages so far:");
+            conn.socket.send("Messages so far:");
             for (const message of model.messages) {
-                console.log(message);
+                conn.socket.send(message);
             }
         });
 
@@ -52,9 +51,6 @@ for await (const conn of server) {
         const { socket, response } = Deno.upgradeWebSocket(e.request);
         const conn = receiveSocket(socket, response);
         registerGlobalActions(conn);
-        conn.registerListener("test", (data) => {
-            console.log("listener registered. received " + data as string);
-        });
         e.respondWith(response);
     }
 }
@@ -62,6 +58,7 @@ for await (const conn of server) {
 function receiveSocket(socket: WebSocket, _response: Response) {
     const conn = new Connection(socket);
     socket.onopen = () => {
+        socket.send("connected");
     };
     socket.onmessage = (e) => {
         const message = Message.parse(e.data);

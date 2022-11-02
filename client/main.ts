@@ -1,14 +1,22 @@
 import { Message } from "../shared/messaging.ts";
+import { readLines } from "https://deno.land/std/io/buffer.ts";
 
 const ws = new WebSocket("ws://localhost:8080");
+
+// Non-blocking prompt
+async function prompt() {
+    for await (const line of readLines(Deno.stdin)) {
+        return line;
+    }
+}
 
 ws.onmessage = (m) => {
     console.log("SERVER SAYS|" + m.data);
 };
 
-ws.onopen = (_) => {
+ws.onopen = async (_) => {
     while (true) {
-        const input = prompt(">> ") || "exit";
+        const input = await prompt() || "exit";
         if (input as string == "exit") {
             ws.close();
             Deno.exit(0);
