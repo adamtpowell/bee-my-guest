@@ -11,8 +11,8 @@ export class Message {
         return JSON.stringify({ name: this.name, args: this.args });
     }
 
-    static parse(message: string): { name: string; args: string[] } {
+    static parse(message: string): Message {
         const obj = JSON.parse(message);
-        return new Message(obj.name, obj.args);
+        return new this(obj.name, obj.args);
     }
 }

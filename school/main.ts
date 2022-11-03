@@ -5,15 +5,47 @@ const server = Deno.listen({ port: 8080 });
 class Connection {
     socket: WebSocket;
     // Listeners registered on this connection.
-    listeners: { [index: string]: (data: string[]) => void } = {};
+    listeners: { [index: string]: (message: Message) => void } = {};
     constructor(socket: WebSocket) {
         this.socket = socket;
     }
 
-    registerListener(message: string, listener: (data: string[]) => void) {
+    // Add a listener for this specific connection.
+    registerListener(message: string, listener: (message: Message) => void) {
         this.listeners[message] = listener;
     }
 }
+
+// A message bus. The main bus will be the global one onto which all models register listeners.
+// The bus hooks into any connections added to it and relays their messages to all matching listeners.
+// Models don't need to own any of the logic for whether they receive messages, they just specifiy which kinds they want.
+class MessageBus {
+    // A list of listeners registered under the bus. TODO: Add filters to this.
+    // when any message is received on a connection, broadcast it to all relevant connections.
+    listeners: { [index: string]: ((message: Message) => void)[] } = {};
+    connections: Set<Connection> = new Set<Connection>();
+
+    registerConnection(conn: Connection) {
+        this.connections.add(conn);
+        conn.registerListener("*", (m) => this.broadcastMessage(m));
+    }
+
+    registerListener(message: string, listener: (message: Message) => void) {
+        if (!this.listeners[message]) {
+            this.listeners[message] = [];
+        }
+
+        this.listeners[message].push(listener);
+    }
+
+    broadcastMessage(message: Message) {
+        const filtered_listeners = this.listeners[message.name];
+        for (const listener of filtered_listeners) {
+            listener(message);
+        }
+    }
+}
+
 // TODO: Add base class / mixin for holding a list of listeners.
 // there will be methods on that base class for registering and deregistering
 // the listeners.
@@ -23,17 +55,17 @@ class ModelConversation {
     messages: string[] = [];
 }
 
-function registerGlobalActions(conn: Connection) {
-    conn.registerListener("ModelConnect_Conversation", (_) => {
+function registerGlobalActions(conn: Connection, bus: MessageBus) {
+    bus.registerListener("ModelConnect_Conversation", (_) => {
         // Here is where a model would be created.
         const model = new ModelConversation();
 
         // Register listeners from the model.
-        conn.registerListener("SendMessage", (args) => {
-            model.messages.push(args[1] + ": " + args[0]);
+        bus.registerListener("SendMessage", (message) => {
+            model.messages.push(message.args[1] + ": " + message.args[0]);
         });
 
-        conn.registerListener("ListMessages", (_) => {
+        bus.registerListener("ListMessages", (_) => {
             conn.socket.send("Messages so far:");
             for (const message of model.messages) {
                 conn.socket.send(message);
@@ -44,30 +76,50 @@ function registerGlobalActions(conn: Connection) {
     });
 }
 
+const global_bus = new MessageBus();
+
 for await (const conn of server) {
     const httpConn = Deno.serveHttp(conn); // Turn the request into http
 
     for await (const e of httpConn) {
         const { socket, response } = Deno.upgradeWebSocket(e.request);
-        const conn = receiveSocket(socket, response);
-        registerGlobalActions(conn);
+        const conn = receiveSocket(socket, response, global_bus);
+        registerGlobalActions(conn, global_bus);
         e.respondWith(response);
     }
 }
 
-function receiveSocket(socket: WebSocket, _response: Response) {
+function receiveSocket(
+    socket: WebSocket,
+    _response: Response,
+    bus: MessageBus,
+) {
     const conn = new Connection(socket);
+    bus.registerConnection(conn);
+
     socket.onopen = () => {
         socket.send("connected");
     };
     socket.onmessage = (e) => {
         const message = Message.parse(e.data);
-        // Call the registered listener for this message type.
+
         const listener = conn.listeners[message.name];
+
+        // A listener with message * responds to everything.
+        const star_listener = conn.listeners["*"];
+
+        let sent = false;
         if (listener) {
-            listener(message.args);
-        } else {
-            console.log("Unknown Message");
+            listener(message);
+            sent = true;
+        }
+        if (star_listener && listener != star_listener) {
+            star_listener(message);
+            sent = true;
+        }
+
+        if (!sent) {
+            socket.send("Unknown Message");
         }
     };
     socket.onclose = () => console.log("websocket closed");
