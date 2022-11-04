@@ -53,16 +53,23 @@ class MessageBus {
 // They will also be a way to register the model connection listener.
 class ModelConversation {
     messages: string[] = [];
+    members: Set<string>;
+
+    constructor(members: string[]) {
+        this.members = new Set(members);
+    }
 }
 
 function registerGlobalActions(conn: Connection, bus: MessageBus) {
-    bus.registerListener("ModelConnect_Conversation", (_) => {
+    bus.registerListener("ModelConnect_Conversation", (message) => {
         // Here is where a model would be created.
-        const model = new ModelConversation();
+        const model = new ModelConversation(message.args);
 
         // Register listeners from the model.
         bus.registerListener("SendMessage", (message) => {
-            model.messages.push(message.args[1] + ": " + message.args[0]);
+            if (model.members.has(message.args[1])) {
+                model.messages.push(message.args[1] + ": " + message.args[0]);
+            }
         });
 
         bus.registerListener("ListMessages", (_) => {
