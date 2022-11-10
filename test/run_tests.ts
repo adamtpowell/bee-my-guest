@@ -1,5 +1,6 @@
 import { Message } from "../shared/messaging.ts";
 import { assertEquals } from "https://deno.land/std@0.163.0/testing/asserts.ts";
+import { Server } from "../school/Server.ts";
 
 function getWebsocket(): Promise<[
     WebSocket,
@@ -31,6 +32,9 @@ function getWebsocket(): Promise<[
 }
 
 Deno.test("Echo Test", async () => {
+    const server = new Server();
+    server.run();
+
     const [ws, sendMessage, getMessage] = await getWebsocket();
 
     sendMessage("echo", ["echo works"]);
@@ -39,9 +43,13 @@ Deno.test("Echo Test", async () => {
     assertEquals(reply, "echo works");
 
     ws.close();
+    server.close();
 });
 
 Deno.test("Test send messages", async () => {
+    const server = new Server();
+    server.run();
+
     const [ws, sendMessage, getMessage] = await getWebsocket();
 
     sendMessage("ModelConnect_Conversation", ["user1", "user2"]);
@@ -56,9 +64,13 @@ Deno.test("Test send messages", async () => {
     assertEquals(reply2, "user1: hello!");
 
     ws.close();
+    server.close();
 });
 
 Deno.test("Server resets correctly", async () => {
+    const server = new Server();
+    server.run();
+
     const [ws, sendMessage, getMessage] = await getWebsocket();
 
     sendMessage("ModelConnect_Conversation", ["user1", "user2"]);
@@ -74,4 +86,5 @@ Deno.test("Server resets correctly", async () => {
     assertEquals(echoReply, "echo works");
 
     ws.close();
+    server.close();
 });

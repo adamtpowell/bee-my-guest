@@ -1,7 +1,0 @@
-#!/bin/bash
-
-deno run --allow-net --allow-read ./school/main.ts &
-trap "kill $!" SIGINT
-deno test --allow-net ./test/run_tests.ts
-
-kill $!
