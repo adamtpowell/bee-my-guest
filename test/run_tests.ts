@@ -40,3 +40,38 @@ Deno.test("Echo Test", async () => {
 
     ws.close();
 });
+
+Deno.test("Test send messages", async () => {
+    const [ws, sendMessage, getMessage] = await getWebsocket();
+
+    sendMessage("ModelConnect_Conversation", ["user1", "user2"]);
+
+    sendMessage("SendMessage", ["hello!", "user1"]);
+
+    sendMessage("ListMessages", []);
+
+    const reply = await getMessage();
+    assertEquals(reply, "Messages so far:");
+    const reply2 = await getMessage();
+    assertEquals(reply2, "user1: hello!");
+
+    ws.close();
+});
+
+Deno.test("Server resets correctly", async () => {
+    const [ws, sendMessage, getMessage] = await getWebsocket();
+
+    sendMessage("ModelConnect_Conversation", ["user1", "user2"]);
+
+    sendMessage("ListMessages", []);
+
+    const reply = await getMessage();
+    assertEquals(reply, "Messages so far:");
+
+    sendMessage("echo", ["echo works"]);
+    const echoReply = await getMessage();
+
+    assertEquals(echoReply, "echo works");
+
+    ws.close();
+});
