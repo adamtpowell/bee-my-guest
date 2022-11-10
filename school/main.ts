@@ -71,6 +71,9 @@ class ModelConversation {
     }
 
     static registerListeners(bus: MessageBus) {
+        bus.registerListener("echo", (message) => {
+            message.reply(message.args[0]);
+        });
         bus.registerListener("ModelConnect_Conversation", (message) => {
             // Here is where a model would be created.
             const model = new ModelConversation(message.args);
@@ -118,7 +121,6 @@ function receiveSocket(
     bus.registerConnection(conn);
 
     socket.onopen = () => {
-        socket.send("connected");
     };
     socket.onmessage = (e) => {
         const message = Message.parse(socket, e.data);
@@ -142,7 +144,8 @@ function receiveSocket(
             socket.send("Unknown Message");
         }
     };
-    socket.onclose = () => console.log("websocket closed");
+    socket.onclose = () => {
+    };
     socket.onerror = (e) => console.error("WebSocket error:", e);
 
     return conn;
