@@ -1,6 +1,16 @@
 import { Message } from "../shared/messaging.ts";
-import { assertEquals } from "https://deno.land/std@0.163.0/testing/asserts.ts";
 import { Server } from "../school/Server.ts";
+import {
+    assertEquals,
+    assertStrictEquals,
+    assertThrows,
+} from "https://deno.land/std@0.163.0/testing/asserts.ts";
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    it,
+} from "https://deno.land/std@0.163.0/testing/bdd.ts";
 
 function getWebsocket(): Promise<[
     WebSocket,
@@ -31,60 +41,57 @@ function getWebsocket(): Promise<[
     });
 }
 
-Deno.test("Echo Test", async () => {
-    const server = new Server();
-    server.run();
+describe("Server", () => {
+    let server: Server;
 
-    const [ws, sendMessage, getMessage] = await getWebsocket();
+    beforeEach(() => {
+        server = new Server();
+        server.run();
+    });
 
-    sendMessage("echo", ["echo works"]);
-    const reply = await getMessage();
+    it("echoes in response to echo", async () => {
+        const [ws, sendMessage, getMessage] = await getWebsocket();
 
-    assertEquals(reply, "echo works");
+        sendMessage("echo", ["echo works"]);
 
-    ws.close();
-    server.close();
-});
+        assertEquals(await getMessage(), "echo works");
 
-Deno.test("Test send messages", async () => {
-    const server = new Server();
-    server.run();
+        ws.close();
+    });
 
-    const [ws, sendMessage, getMessage] = await getWebsocket();
+    it("Denies chat messages from users not in conversation", async () => {
+        const [ws, sendMessage, getMessage] = await getWebsocket();
 
-    sendMessage("ModelConnect_Conversation", ["user1", "user2"]);
+        sendMessage("ModelConnect_Conversation", ["user1", "user2"]);
 
-    sendMessage("SendMessage", ["hello!", "user1"]);
+        sendMessage("SendMessage", ["hello!", "user3"]); // This user is not in the conversation
 
-    sendMessage("ListMessages", []);
+        sendMessage("SendMessage", ["hello!", "user1"]); // This user is in the conversation
 
-    const reply = await getMessage();
-    assertEquals(reply, "Messages so far:");
-    const reply2 = await getMessage();
-    assertEquals(reply2, "user1: hello!");
+        sendMessage("ListMessages", []);
 
-    ws.close();
-    server.close();
-});
+        assertEquals(await getMessage(), "Messages so far:");
+        assertEquals(await getMessage(), "user1: hello!"); // The message should be from user1, and the other message should have been rejected.
 
-Deno.test("Server resets correctly", async () => {
-    const server = new Server();
-    server.run();
+        ws.close();
+    });
 
-    const [ws, sendMessage, getMessage] = await getWebsocket();
+    it("Accepts and lists chat messages", async () => {
+        const [ws, sendMessage, getMessage] = await getWebsocket();
 
-    sendMessage("ModelConnect_Conversation", ["user1", "user2"]);
+        sendMessage("ModelConnect_Conversation", ["user1", "user2"]);
 
-    sendMessage("ListMessages", []);
+        sendMessage("SendMessage", ["hello!", "user1"]);
 
-    const reply = await getMessage();
-    assertEquals(reply, "Messages so far:");
+        sendMessage("ListMessages", []);
 
-    sendMessage("echo", ["echo works"]);
-    const echoReply = await getMessage();
+        assertEquals(await getMessage(), "Messages so far:");
+        assertEquals(await getMessage(), "user1: hello!");
 
-    assertEquals(echoReply, "echo works");
+        ws.close();
+    });
 
-    ws.close();
-    server.close();
+    afterEach(() => {
+        server.close();
+    });
 });
