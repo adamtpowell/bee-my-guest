@@ -27,7 +27,12 @@ class MessageBus {
 
     registerConnection(conn: Connection) {
         this.connections.add(conn);
-        conn.registerListener("*", (m) => this.broadcastMessage(m));
+
+        // Since the arrow function is run in the context of
+        // the connection, this would be bound to the connection's this.
+        // deno-lint-ignore no-this-alias
+        const that = this;
+        conn.registerListener("*", (m) => that.broadcastMessage(m));
     }
 
     registerListener(message: string, listener: (message: Message) => void) {
@@ -40,6 +45,12 @@ class MessageBus {
 
     broadcastMessage(message: Message) {
         const filtered_listeners = this.listeners[message.name];
+        if (!filtered_listeners) {
+            console.log(
+                "broadcastMessage: No listeners for message" + message.name,
+            );
+            return;
+        }
         for (const listener of filtered_listeners) {
             listener(message);
         }
@@ -58,29 +69,29 @@ class ModelConversation {
     constructor(members: string[]) {
         this.members = new Set(members);
     }
-}
 
-function registerGlobalActions(conn: Connection, bus: MessageBus) {
-    bus.registerListener("ModelConnect_Conversation", (message) => {
-        // Here is where a model would be created.
-        const model = new ModelConversation(message.args);
+    static registerListeners(bus: MessageBus) {
+        bus.registerListener("ModelConnect_Conversation", (message) => {
+            // Here is where a model would be created.
+            const model = new ModelConversation(message.args);
 
-        // Register listeners from the model.
-        bus.registerListener("SendMessage", (message) => {
-            if (model.members.has(message.args[1])) {
-                model.messages.push(message.args[1] + ": " + message.args[0]);
-            }
+            // Register listeners from the model.
+            bus.registerListener("SendMessage", (message) => {
+                if (model.members.has(message.args[1])) {
+                    model.messages.push(
+                        message.args[1] + ": " + message.args[0],
+                    );
+                }
+            });
+
+            bus.registerListener("ListMessages", (message) => {
+                message.reply("Messages so far:");
+                for (const chat_message of model.messages) {
+                    message.reply(chat_message);
+                }
+            });
         });
-
-        bus.registerListener("ListMessages", (_) => {
-            conn.socket.send("Messages so far:");
-            for (const message of model.messages) {
-                conn.socket.send(message);
-            }
-        });
-
-        console.log("Connected to conversation model.");
-    });
+    }
 }
 
 const global_bus = new MessageBus();
@@ -90,8 +101,10 @@ for await (const conn of server) {
 
     for await (const e of httpConn) {
         const { socket, response } = Deno.upgradeWebSocket(e.request);
-        const conn = receiveSocket(socket, response, global_bus);
-        registerGlobalActions(conn, global_bus);
+        receiveSocket(socket, response, global_bus);
+
+        ModelConversation.registerListeners(global_bus);
+
         e.respondWith(response);
     }
 }
@@ -108,7 +121,7 @@ function receiveSocket(
         socket.send("connected");
     };
     socket.onmessage = (e) => {
-        const message = Message.parse(e.data);
+        const message = Message.parse(socket, e.data);
 
         const listener = conn.listeners[message.name];
 

@@ -22,7 +22,7 @@ ws.onopen = async (_) => {
             Deno.exit(0);
         }
         const args = input.split(" ");
-        const message = new Message(args[0], args.slice(1));
+        const message = new Message(undefined, args[0], args.slice(1));
         ws.send(message.stringify());
     }
 };
