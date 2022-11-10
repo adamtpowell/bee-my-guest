@@ -7,7 +7,7 @@ function receiveSocket(
     socket: WebSocket,
     _response: Response,
     bus: MessageBus,
-) {
+): Connection {
     const conn = new Connection(socket);
     bus.registerConnection(conn);
 
