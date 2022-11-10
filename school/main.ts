@@ -42,19 +42,37 @@ function receiveSocket(
     return conn;
 }
 
-const server = Deno.listen({ port: 8080 });
+class Server {
+    listener: Deno.Listener;
+    bus: MessageBus;
 
-const global_bus = new MessageBus();
+    constructor() {
+        this.listener = Deno.listen({ port: 8080 });
+        this.bus = new MessageBus();
+    }
 
-for await (const conn of server) {
-    const httpConn = Deno.serveHttp(conn); // Turn the request into http
+    async runServer() {
+        for await (const conn of this.listener) {
+            const httpConn = Deno.serveHttp(conn); // Turn the request into http
+            const e = await httpConn.nextRequest();
 
-    for await (const e of httpConn) {
-        const { socket, response } = Deno.upgradeWebSocket(e.request);
-        receiveSocket(socket, response, global_bus);
+            if (!e) {
+                console.log(
+                    "Connection unexpectedly closed in http connection for websocket",
+                );
+                continue;
+            }
 
-        ModelConversation.registerListeners(global_bus);
+            const { socket, response } = Deno.upgradeWebSocket(e.request);
+            receiveSocket(socket, response, this.bus);
 
-        e.respondWith(response);
+            // TODO: move this somewhere sane
+            ModelConversation.registerListeners(this.bus);
+
+            e.respondWith(response);
+        }
     }
 }
+
+const server = new Server();
+server.runServer();
