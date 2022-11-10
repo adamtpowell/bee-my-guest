@@ -70,7 +70,6 @@ describe("Server", () => {
 
         sendMessage("ListMessages", []);
 
-        assertEquals(await getMessage(), "Messages so far:");
         assertEquals(await getMessage(), "user1: hello!"); // The message should be from user1, and the other message should have been rejected.
 
         ws.close();
@@ -85,7 +84,6 @@ describe("Server", () => {
 
         sendMessage("ListMessages", []);
 
-        assertEquals(await getMessage(), "Messages so far:");
         assertEquals(await getMessage(), "user1: hello!");
 
         ws.close();

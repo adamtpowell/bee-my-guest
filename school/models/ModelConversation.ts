@@ -31,7 +31,6 @@ export class ModelConversation {
             });
 
             bus.registerListener("ListMessages", (message) => {
-                message.reply("Messages so far:");
                 for (const chat_message of model.messages) {
                     message.reply(chat_message);
                 }
