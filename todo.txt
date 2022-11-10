@@ -1,0 +1,1 @@
+* Update test harness to directly launch the server code instead of using bash to do so.
