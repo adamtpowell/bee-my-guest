@@ -1,1 +1,10 @@
 * Update test harness to directly launch the server code instead of using bash to do so.
+* Change the * listener on connections to be explicitly different.
+    * Maybe they can subscribe to a bus?
+    * Or they generally have a function which pub subs?
+        * That's kinda what they already are lol
+* encapsulate server in a class.
+    * it will have a close method which changes a variable saying to cancel the event loop
+    * that should let me wrap the server in a way that lets me cancel it.
+    * Also moves complexity out of main.ts
+* Find where to logically put receiveSocket and what to call it.
