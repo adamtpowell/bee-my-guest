@@ -1,5 +1,0 @@
-* Change the * listener on connections to be explicitly different.
-    * Maybe they can subscribe to a bus?
-    * Or they generally have a function which pub subs?
-        * That's kinda what they already are lol
-* Find where to logically put receiveSocket and what to call it.
