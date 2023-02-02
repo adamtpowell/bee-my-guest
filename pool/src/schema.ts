@@ -1,4 +1,6 @@
-enum DesireType {
+import { makeExecutableSchema } from '@graphql-tools/schema';
+
+const typeDefinitions = `enum DesireType {
     NEEDS
     HAS
 }
@@ -27,4 +29,15 @@ type User {
 type TimeInterval {
     start: Int
     end: Int
-}
+}`;
+
+const resolvers = {
+	Query: {
+
+	}
+};
+
+export const schema = makeExecutableSchema({
+	resolvers: [resolvers],
+	typeDefs: [typeDefinitions],
+});
