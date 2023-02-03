@@ -1,3 +1,8 @@
+.env
+
+dev.db
+dev.db-journal
+
 # Logs
 logs
 *.log
